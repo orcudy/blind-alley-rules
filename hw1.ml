@@ -74,10 +74,12 @@ match rhs with
 ;;
 
 (* returns list of all nonterminals which are guaranteed to terminate *)
-let rec generate_white_list grammar =
+let rec generate_white_list grammar white_list =
 match grammar with
-| start, [] -> []
-| start, (symbol, rhs) :: rules -> if guaranteed_termination rhs then symbol :: generate_white_list (start, rules) else generate_white_list (start, rules)
+| start, [] -> white_list
+| start, (symbol, rhs) :: rules ->
+if contains white_list symbol then generate_white_list (start, rules) white_list
+else if guaranteed_termination rhs then generate_white_list (start, rules) (symbol :: white_list) else generate_white_list (start, rules) white_list
 ;;
 
 (* returns list of all nonterminals which appear on lhs of grammar *)
@@ -115,8 +117,8 @@ let generate_black_list grammar =
 generate_unused_nonterminals grammar @ generate_undefined_nonterminals grammar
 ;;
 
-let rec extract_nonterminals rule =
-match rule with
+let rec extract_nonterminals rhs =
+match rhs with
 | [] -> []
 | N nonterminal :: t -> nonterminal :: extract_nonterminals t
 | T _ :: t -> extract_nonterminals t
@@ -136,8 +138,11 @@ match list with
 
 let rec aux_filter_blind_alleys grammar white_list =
 match grammar with
-| _, [] -> []
-| start, (symbol, rhs) :: rules -> if subset (extract_nonterminals rhs) white_list then symbol :: white_list else aux_filter_blind_alleys (start, rules) white_list
+| _, [] -> white_list
+| start, (symbol, rhs) :: rules ->
+if contains white_list symbol then aux_filter_blind_alleys (start, rules) white_list
+else if subset (extract_nonterminals rhs) white_list then symbol :: white_list
+else aux_filter_blind_alleys (start, rules) white_list
 ;;
 
 let rec iter_filter_blind_alleys grammar white_list length =
@@ -146,8 +151,23 @@ match length with
 | _ -> iter_filter_blind_alleys grammar (aux_filter_blind_alleys grammar white_list) (length - 1)
 ;;
 
-let filter_blind_alleys grammar =
+let generate_valid_nonterminals grammar =
 let length = length (unique (extract_all_lhs grammar)) in
-let white_list = generate_white_list grammar in
+let white_list = generate_white_list grammar [] in
 iter_filter_blind_alleys grammar white_list length
 ;;
+
+(* let rec filter_unterminatable grammar =
+let valid_nonterminals = generate_valid_nonterminals grammar in
+match grammar with
+| _, [] -> []
+| start, (symbol, rhs) :: rules ->
+if contains valid_nonterminals symbol then (symbol, rhs) :: filter_unterminatable (start, rules) else filter_unterminatable (start, rules) *)
+
+let rec filter_blind_alley_rules grammar =
+let valid_nonterminals = generate_valid_nonterminals grammar in
+let black_list = generate_black_list grammar in
+match grammar with
+| _, [] -> []
+| start, (symbol, rhs) :: rules ->
+if contains valid_nonterminals symbol && not (contains black_list symbol) && equal_sets (set_diff black_list (extract_nonterminals rhs)) black_list then (symbol, rhs) :: filter_blind_alley_rules (start, rules) else filter_blind_alley_rules (start, rules)
