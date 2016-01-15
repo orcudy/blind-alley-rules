@@ -3,9 +3,9 @@ type nonterminals =
   | Expr | Lvalue | Incrop | Binop | Num | Dummy
 
 let rules =
-   [Expr, [T"("; N Expr; T")"];
+   [Expr, [N Num];
+    Expr, [T"("; N Expr; T")"];
     Expr, [N Dummy];
-    Expr, [N Num];
     Expr, [N Expr; N Binop; N Expr];
     Expr, [N Lvalue];
     Expr, [N Incrop; N Lvalue];
