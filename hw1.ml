@@ -29,13 +29,16 @@ match list with
 let rec proper_subset a b =
 match a with
 | [] -> if b != [] then true else false
-| h :: t -> if contains b h then proper_subset (remove h t) (remove h b) else false;;
+| h :: t -> if contains b h then proper_subset (remove h t) (remove h b) else 
+false;;
 
-(* returns true if a is equal to b (using set logic, where all elements of set are unique) *)
+(* returns true if a is equal to b (using set logic, where all elements of set 
+are unique) *)
 let rec equal_sets a b =
 match a with
 | [] -> if b = [] then true else false
-| h :: t -> if contains b h then equal_sets (remove h t) (remove h b) else false;;
+| h :: t -> if contains b h then equal_sets (remove h t) (remove h b) else 
+false;;
 
 (* returns true if a is a (strict) subset of b *)
 let rec subset a b =
@@ -43,10 +46,12 @@ match a with
 | [] -> true
 | _ -> if proper_subset a b || equal_sets a b then true else false;;
 
-(* returns a list of all elements in a which are not also in b (set difference) *)
+(* returns a list of all elements in a which are not also in b (set difference) 
+*)
 let rec set_diff a b = match a with
 | [] -> []
-| h :: t -> if contains b h then set_diff (remove h t) (remove h b) else h :: set_diff (remove h t) (remove h b);;
+| h :: t -> if contains b h then set_diff (remove h t) (remove h b) else h :: 
+set_diff (remove h t) (remove h b);;
 
 (* returns a list of the union of a and b *)
 let set_union a b =
@@ -61,7 +66,8 @@ set_diff (set_union a b) ((set_diff a b) @ (set_diff b a))
 (* Fixed/periodic point functions *)
 
 (*
-evaluates the given function FUNC on input INPUT x number of times ( if x = 3, return f(f(f(input))) )
+evaluates the given function FUNC on input INPUT x number of times ( if x = 3, 
+return f(f(f(input))) )
 *)
 let rec evaluate_function func input = function
 | 0 -> input
@@ -70,7 +76,8 @@ let rec evaluate_function func input = function
 
 let rec computed_periodic_point equal func period initial =
 let evaluated = evaluate_function func initial period in
-if equal evaluated initial then initial else computed_periodic_point equal func period (func initial);;
+if equal evaluated initial then initial else computed_periodic_point equal func 
+period (func initial);;
 
 let rec computed_fixed_point equal func initial =
   computed_periodic_point equal func 1 initial;;
@@ -96,8 +103,10 @@ let rec extract_all_rhs grammar =
 match grammar with
 | _, [] -> []
 | start, (symbol, []) :: rules -> extract_all_rhs (start, rules)
-| start, (symbol, N nonterminal :: rhs) :: rules -> nonterminal :: extract_all_rhs (start, (symbol, rhs) :: rules)
-| start, (symbol, T _ :: rhs) :: rules -> extract_all_rhs (start, (symbol, rhs) :: rules)
+| start, (symbol, N nonterminal :: rhs) :: rules -> nonterminal :: 
+extract_all_rhs (start, (symbol, rhs) :: rules)
+| start, (symbol, T _ :: rhs) :: rules -> extract_all_rhs (start, (symbol, rhs) 
+:: rules)
 ;;
 
 let rec extract_nonterminals rhs =
@@ -117,13 +126,16 @@ match rhs with
 
 (* white list generation *)
 
-(* returns list of all nonterminals which are guaranteed to terminate -- checked *)
+(* returns list of all nonterminals which are guaranteed to terminate -- 
+checked *)
 let rec generate_initial_white_list grammar white_list =
 match grammar with
 | start, [] -> white_list
 | start, (symbol, rhs) :: rules ->
-if contains white_list symbol then generate_initial_white_list (start, rules) white_list
-else if guaranteed_termination rhs then generate_initial_white_list (start, rules) (symbol :: white_list)
+if contains white_list symbol then generate_initial_white_list (start, rules) 
+white_list
+else if guaranteed_termination rhs then generate_initial_white_list (start, 
+rules) (symbol :: white_list)
 else generate_initial_white_list (start, rules) white_list
 ;;
 
@@ -131,7 +143,8 @@ let rec aux_generate_white_list grammar white_list =
 match grammar with
 | _, [] -> white_list
 | start, (symbol, rhs) :: rules ->
-if contains white_list symbol then aux_generate_white_list (start, rules) white_list
+if contains white_list symbol then aux_generate_white_list (start, rules) 
+white_list
 else if subset (extract_nonterminals rhs) white_list then symbol :: white_list
 else aux_generate_white_list (start, rules) white_list
 ;;
@@ -139,7 +152,8 @@ else aux_generate_white_list (start, rules) white_list
 let rec iter_generate_white_list grammar white_list count =
 match count with
 | 0 -> white_list
-| _ -> iter_generate_white_list grammar (aux_generate_white_list grammar white_list) (count - 1)
+| _ -> iter_generate_white_list grammar (aux_generate_white_list grammar 
+white_list) (count - 1)
 ;;
 
 let generate_white_list grammar =
@@ -153,13 +167,16 @@ iter_generate_white_list grammar initial_white_list count
 let rec rule_contains_only_white_listed_nonterminals white_list rule =
 match rule with
 | symbol, [] -> if contains white_list symbol then true else false
-| symbol, N h :: t -> if contains white_list h then rule_contains_only_white_listed_nonterminals white_list (symbol, t) else false
-| symbol, T _ :: t -> rule_contains_only_white_listed_nonterminals white_list (symbol, t)
+| symbol, N h :: t -> if contains white_list h then 
+rule_contains_only_white_listed_nonterminals white_list (symbol, t) else false
+| symbol, T _ :: t -> rule_contains_only_white_listed_nonterminals white_list 
+(symbol, t)
 
 let rec aux_filter_blind_alleys white_list rules =
 match rules with
 | [] -> []
-| h :: t -> if rule_contains_only_white_listed_nonterminals white_list h then h :: aux_filter_blind_alleys white_list t
+| h :: t -> if rule_contains_only_white_listed_nonterminals white_list h then h 
+:: aux_filter_blind_alleys white_list t
 else aux_filter_blind_alleys white_list t
 ;;
 
