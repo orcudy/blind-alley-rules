@@ -1,3 +1,5 @@
+open List;;
+
 (* Utility functions *)
 
 (* returns true if input contains 'obj' (semantic), else false*)
@@ -59,13 +61,13 @@ type ('nonterminal, 'terminal) symbol =
   | N of 'nonterminal
   | T of 'terminal
 
-(* returns list of all rules for nonterminal *)
+(* returns list of all rules for nonterminal -- checked*)
 let rec get_rules nonterminal grammar =
 match grammar with
 | _, [] -> []
 | start, (symbol, rhs) :: rules -> if nonterminal = symbol then (symbol, rhs) :: get_rules nonterminal (start, rules) else get_rules nonterminal (start, rules);;
 
-(* returns true if all elements in rhs are terminals *)
+(* returns true if all elements in rhs are terminals -- checked*)
 let rec guaranteed_termination rhs =
 match rhs with
 | [] -> true
@@ -73,7 +75,7 @@ match rhs with
 | T _ :: t -> guaranteed_termination t
 ;;
 
-(* returns list of all nonterminals which are guaranteed to terminate *)
+(* returns list of all nonterminals which are guaranteed to terminate -- checked*)
 let rec generate_white_list grammar white_list =
 match grammar with
 | start, [] -> white_list
@@ -82,18 +84,20 @@ if contains white_list symbol then generate_white_list (start, rules) white_list
 else if guaranteed_termination rhs then generate_white_list (start, rules) (symbol :: white_list) else generate_white_list (start, rules) white_list
 ;;
 
-(* returns list of all nonterminals which appear on lhs of grammar *)
+(* returns list of all nonterminals which appear on lhs of grammar -- checked*)
 let rec extract_all_lhs grammar =
 match grammar with
 | _, [] -> []
+| start, (symbol, []) :: rules -> extract_all_lhs (start, rules)
 | start, (symbol, rhs) :: rules -> symbol :: extract_all_lhs (start, rules)
 ;;
 
-(* returns list of all nonterminals which appear on rhs of grammar *)
+(* returns list of all nonterminals which appear on rhs of grammar -- checked*)
 let rec extract_all_rhs grammar =
 match grammar with
 | _, [] -> []
 | start, (symbol, []) :: rules -> extract_all_rhs (start, rules)
+(* | start, (symbol, h :: rhs) :: rules -> h :: extract_all_rhs (start, (symbol, rhs) :: rules) *)
 | start, (symbol, N nonterminal :: rhs) :: rules -> nonterminal :: extract_all_rhs (start, (symbol, rhs) :: rules)
 | start, (symbol, T _ :: rhs) :: rules -> extract_all_rhs (start, (symbol, rhs) :: rules)
 ;;
@@ -105,16 +109,17 @@ let all_rhs = extract_all_rhs grammar in
 set_diff all_rhs all_lhs
 ;;
 
-(* returns list of all nonterminals which where defined on lhs but never used on rhs of grammar *)
-let generate_unused_nonterminals grammar =
-let all_lhs = extract_all_lhs grammar in
-let all_rhs = extract_all_rhs grammar in
+(* returns list of all nonterminals which were defined on lhs but never used on rhs of grammar -- broken!*)
+(* let generate_unused_nonterminals grammar =
+let all_lhs = filter (fun x -> if contains (generate_white_list grammar) x then False else True) (extract_all_lhs grammar) in
+let all_rhs = filter (fun x -> if contains (generate_white_list grammar) x then False else True) (extract_all_rhs grammar) in
 set_diff all_lhs all_rhs
-;;
+;; *)
 
-(* returns list of all nonterminals which are guaranteed to never terminate *)
+(* returns list of all nonterminals which are guaranteed to never terminate -- broken!*)
 let generate_black_list grammar =
-generate_unused_nonterminals grammar @ generate_undefined_nonterminals grammar
+generate_undefined_nonterminals grammar
+(* @ generate_unused_nonterminals grammar *)
 ;;
 
 let rec extract_nonterminals rhs =
@@ -164,10 +169,23 @@ match grammar with
 | start, (symbol, rhs) :: rules ->
 if contains valid_nonterminals symbol then (symbol, rhs) :: filter_unterminatable (start, rules) else filter_unterminatable (start, rules) *)
 
-let rec filter_blind_alley_rules grammar =
-let valid_nonterminals = generate_valid_nonterminals grammar in
-let black_list = generate_black_list grammar in
+
+let rec filter_nonterminatable grammar white_list =
 match grammar with
 | _, [] -> []
-| start, (symbol, rhs) :: rules ->
-if contains valid_nonterminals symbol && not (contains black_list symbol) && equal_sets (set_diff black_list (extract_nonterminals rhs)) black_list then (symbol, rhs) :: filter_blind_alley_rules (start, rules) else filter_blind_alley_rules (start, rules)
+| start, (symbol, rhs) :: rules -> if contains white_list symbol then (symbol, rhs) :: filter_nonterminatable (start, rules) white_list  else filter_nonterminatable (start, rules) white_list
+;;
+
+let rec filter_black_list grammar black_list =
+match grammar with
+| _, [] -> []
+| start, (symbol, rhs) :: rules -> if contains black_list symbol || not (equal_sets (set_diff black_list (extract_nonterminals rhs)) black_list) then  filter_black_list (start, rules) black_list else (symbol, rhs) :: filter_black_list (start, rules) black_list
+;;
+
+let rec filter_blind_alleys grammar =
+let white_list = generate_valid_nonterminals grammar in
+let black_list = generate_black_list grammar in
+match grammar with
+| start, [] -> start, []
+| start, (symbol, rhs) :: rules -> start, filter_black_list (start, (filter_nonterminatable grammar white_list)) black_list
+;;
