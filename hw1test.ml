@@ -4,9 +4,9 @@ let my_set_union_test1 = equal_sets (set_union [1;2;3] [4;5]) [1;2;3;4;5]
 let my_set_intersection_test0 =
   equal_sets (set_intersection [1;2;3;4;5] [1;2;3;6;7]) [1;2;3]
 let my_set_diff_test0 = equal_sets (set_diff [1;2;3;4;5] [1;1;2;3]) [4;5]
+
 let my_computed_fixed_point_test0 =
     computed_fixed_point (=) (fun x -> x) 1 = 1
-
 let my_computed_periodic_point_test0 =
   computed_periodic_point (=) (fun x -> x) 1 1 = 1
 
